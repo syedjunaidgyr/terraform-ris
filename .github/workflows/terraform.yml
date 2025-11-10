@@ -1,0 +1,89 @@
+name: Terraform
+
+on:
+  push:
+    paths:
+      - "terraform/**"
+      - ".github/workflows/terraform.yml"
+  pull_request:
+    paths:
+      - "terraform/**"
+  workflow_dispatch:
+    inputs:
+      tf_workspace:
+        description: "Optional Terraform workspace to select before apply"
+        required: false
+
+env:
+  TF_CLI_ARGS_init: -input=false
+  TF_CLI_ARGS_plan: -input=false
+  TF_CLI_ARGS_apply: -input=false
+  TF_WORKING_DIR: terraform
+  TF_ENV_FILE: env/dev.tfvars
+
+jobs:
+  validate:
+    name: Validate Terraform
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      - name: Terraform Format
+        run: terraform -chdir=${{ env.TF_WORKING_DIR }} fmt -check
+
+      - name: Terraform Init
+        run: terraform -chdir=${{ env.TF_WORKING_DIR }} init
+
+      - name: Terraform Validate
+        run: terraform -chdir=${{ env.TF_WORKING_DIR }} validate
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          TFVARS_PATH="${TF_WORKING_DIR}/${TF_ENV_FILE}"
+          if [ -f "${TFVARS_PATH}" ]; then
+            terraform -chdir=${TF_WORKING_DIR} plan -var-file="${TF_ENV_FILE}"
+          else
+            echo "No tfvars file at ${TFVARS_PATH}; skipping plan step."
+          fi
+
+  apply:
+    name: Terraform Apply
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    env:
+      TF_WORKSPACE: ${{ github.event.inputs.tf_workspace }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      - name: Terraform Init
+        run: terraform -chdir=${{ env.TF_WORKING_DIR }} init
+
+      - name: Select Workspace
+        if: ${{ env.TF_WORKSPACE != '' }}
+        run: |
+          terraform -chdir=${TF_WORKING_DIR} workspace select ${TF_WORKSPACE} \
+            || terraform -chdir=${TF_WORKING_DIR} workspace new ${TF_WORKSPACE}
+
+      - name: Terraform Apply
+        run: |
+          TFVARS_PATH="${TF_WORKING_DIR}/${TF_ENV_FILE}"
+          APPLY_ARGS="-auto-approve"
+          if [ -f "${TFVARS_PATH}" ]; then
+            terraform -chdir=${TF_WORKING_DIR} apply ${APPLY_ARGS} -var-file="${TF_ENV_FILE}"
+          else
+            terraform -chdir=${TF_WORKING_DIR} apply ${APPLY_ARGS}
+          fi
+

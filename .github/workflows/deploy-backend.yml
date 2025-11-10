@@ -1,0 +1,104 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "ris-backend/**"
+      - "deploy/**"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: "18"
+  APP_ROOT: "/opt/ris"
+  APP_USER: "ris"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: "ris-backend/package-lock.json"
+
+      - name: Install dependencies
+        working-directory: ris-backend
+        run: npm ci
+
+      - name: Run tests
+        working-directory: ris-backend
+        run: npm test -- --runInBand
+
+      - name: Package backend
+        run: |
+          tar -czf backend-release.tar.gz \
+            -C ris-backend . \
+            -C deploy ecosystem.config.cjs
+
+      - name: Upload artifact to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: backend-release.tar.gz
+          target: /home/${{ secrets.EC2_USER }}
+
+      - name: Deploy release on EC2
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -euo pipefail
+
+            ARCHIVE_PATH="/home/${{ secrets.EC2_USER }}/backend-release.tar.gz"
+            APP_ROOT="${{ env.APP_ROOT }}"
+            APP_USER="${{ env.APP_USER }}"
+            RELEASES_DIR="${APP_ROOT}/releases"
+            TIMESTAMP="$(date +%Y%m%d%H%M%S)"
+            RELEASE_PATH="${RELEASES_DIR}/${TIMESTAMP}"
+
+            sudo mkdir -p "${RELEASE_PATH}"
+            sudo tar -xzf "${ARCHIVE_PATH}" -C "${RELEASE_PATH}"
+            sudo rm -f "${ARCHIVE_PATH}"
+
+            if [ -d "${RELEASE_PATH}/ris-backend" ]; then
+              sudo mv "${RELEASE_PATH}/ris-backend/"* "${RELEASE_PATH}/"
+              sudo rm -rf "${RELEASE_PATH}/ris-backend"
+            fi
+
+            sudo chown -R "${APP_USER}:${APP_USER}" "${RELEASE_PATH}"
+
+            if [ -f "${APP_ROOT}/current/.env" ]; then
+              sudo cp "${APP_ROOT}/current/.env" "${RELEASE_PATH}/.env"
+              sudo chown "${APP_USER}:${APP_USER}" "${RELEASE_PATH}/.env"
+            fi
+
+            sudo mkdir -p "${RELEASES_DIR}"
+            sudo ln -sfn "${RELEASE_PATH}" "${APP_ROOT}/current"
+            sudo chown -h "${APP_USER}:${APP_USER}" "${APP_ROOT}/current"
+
+            sudo -u "${APP_USER}" bash -lc "
+              cd ${APP_ROOT}/current
+              export NODE_ENV=production
+              npm ci --omit=dev
+              pm2 delete ris-backend || true
+              pm2 start ecosystem.config.cjs --env production --update-env
+              pm2 save
+            "
+
+            sudo bash -lc "
+              if [ -d '${RELEASES_DIR}' ]; then
+                ls -1dt ${RELEASES_DIR}/* 2>/dev/null | tail -n +6 | xargs -r rm -rf
+              fi
+            "
+
