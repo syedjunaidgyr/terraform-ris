@@ -25,6 +25,12 @@ ORTHANC_DIR="$${APP_ROOT}/orthanc"
 mkdir -p "$${APP_ROOT}"
 chown -R "${app_user}:${app_user}" "$${APP_ROOT}"
 
+PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 || echo "127.0.0.1")
+RIS_BACKEND_URL="http://${PUBLIC_IP}:${app_port}"
+PACS_BACKEND_URL="http://${PUBLIC_IP}:${pacs_service_port}"
+TEMPLATE_BACKEND_URL="http://${PUBLIC_IP}:${template_service_port}"
+AI_BACKEND_URL="http://${PUBLIC_IP}:${ai_service_port}"
+
 clone_or_update_repo() {
   local repo_url="$1"
   local destination="$2"
@@ -43,36 +49,76 @@ clone_or_update_repo "${repo_openai_image_analysis}" "$${AI_DIR}"
 clone_or_update_repo "${repo_orthanc}" "$${ORTHANC_DIR}"
 
 cat <<EOF >"$${BACKEND_DIR}/.env"
-DB_HOST="${db_host}"
-DB_PORT="${db_port}"
-DB_NAME="${db_name}"
-DB_USER="${db_username}"
-DB_PASSWORD="${db_password}"
-JWT_SECRET="${ris_jwt_secret}"
-PORT="${app_port}"
-NODE_ENV="production"
-PACS_API_BASE="${pacs_api_base_url}"
+# Database Configuration
+DB_HOST=${db_host}
+DB_PORT=${db_port}
+DB_NAME=${db_name}
+DB_USER=${db_username}
+DB_PASSWORD=${db_password}
+
+# JWT Configuration
+JWT_SECRET=${ris_jwt_secret}
+JWT_EXPIRES_IN=24h
+
+# Server Configuration
+PORT=${app_port}
+NODE_ENV=production
+
+# Email Configuration
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+
+# SMS Configuration (Twilio)
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_PHONE_NUMBER=
+
+# DICOM Configuration
+DICOM_AE_TITLE=RIS_SERVER
+DICOM_PORT=104
+
+# File Upload
+MAX_FILE_SIZE=50MB
+UPLOAD_PATH=./uploads
+
+PACS_API_BASE=${PACS_BACKEND_URL}
 EOF
 
-cat <<EOF >"$${FRONTEND_DIR}/.env.local"
-NEXT_PUBLIC_API_URL="${backend_base_url}"
-NEXT_PUBLIC_PACS_API_URL="${pacs_api_base_url}"
-NEXT_PUBLIC_AI_API_URL="${ai_api_base_url}"
-NEXT_PUBLIC_TEMPLATE_API_URL="${template_api_base_url}"
+cat <<EOF >"$${FRONTEND_DIR}/.env"
+#ris backend api
+NEXT_PUBLIC_API_URL=${RIS_BACKEND_URL}
+
+#pacs api
+NEXT_PUBLIC_PACS_API_URL=${PACS_BACKEND_URL}
+
+#ai api
+NEXT_PUBLIC_AI_API_URL=${AI_BACKEND_URL}
+
+# templates api
+NEXT_PUBLIC_TEMPLATE_API_URL=${TEMPLATE_BACKEND_URL}
+EOF
+
+cat <<EOF >"$${PACS_FRONTEND_DIR}/.env.local"
+# API_BASE_URL=http://localhost:3000
+NEXT_PUBLIC_API_BASE_URL=${PACS_BACKEND_URL}
+Ris_backend=${RIS_BACKEND_URL}
+Pacs_backend=${PACS_BACKEND_URL}
+NEXT_PUBLIC_RIS_API_BASE_URL=${TEMPLATE_BACKEND_URL}
 EOF
 
 cat <<EOF >"$${TEMPLATE_DIR}/.env"
-PORT="${template_service_port}"
-DB_HOST="${db_host}"
-DB_USER="${db_username}"
-DB_PASSWORD="${db_password}"
-DB_NAME="ris-templates"
-DB_PORT="${db_port}"
+PORT=${template_service_port}
+DB_HOST=${db_host}
+DB_USER=${db_username}
+DB_PASSWORD=${db_password}
+DB_NAME=ris-templates
+DB_PORT=${db_port}
 EOF
 
 cat <<EOF >"$${AI_DIR}/.env"
-PORT="${ai_service_port}"
-OPENAI_API_KEY="${openai_api_key}"
+OPENAI_API_KEY=${openai_api_key}
 EOF
 
 chown -R "${app_user}:${app_user}" "$${APP_ROOT}"
