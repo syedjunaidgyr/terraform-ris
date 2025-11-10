@@ -26,10 +26,10 @@ mkdir -p "$${APP_ROOT}"
 chown -R "${app_user}:${app_user}" "$${APP_ROOT}"
 
 PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 || echo "127.0.0.1")
-RIS_BACKEND_URL="http://${PUBLIC_IP}:${app_port}"
-PACS_BACKEND_URL="http://${PUBLIC_IP}:${pacs_service_port}"
-TEMPLATE_BACKEND_URL="http://${PUBLIC_IP}:${template_service_port}"
-AI_BACKEND_URL="http://${PUBLIC_IP}:${ai_service_port}"
+RIS_BACKEND_URL="http://$${PUBLIC_IP}:${app_port}"
+PACS_BACKEND_URL="http://$${PUBLIC_IP}:${pacs_service_port}"
+TEMPLATE_BACKEND_URL="http://$${PUBLIC_IP}:${template_service_port}"
+AI_BACKEND_URL="http://$${PUBLIC_IP}:${ai_service_port}"
 
 clone_or_update_repo() {
   local repo_url="$1"
