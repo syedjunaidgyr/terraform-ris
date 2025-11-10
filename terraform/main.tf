@@ -43,9 +43,57 @@ resource "aws_security_group" "app" {
   }
 
   ingress {
-    description = "Application port"
+    description = "Backend application port"
     from_port   = var.app_port
     to_port     = var.app_port
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Frontend application port"
+    from_port   = var.frontend_port
+    to_port     = var.frontend_port
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "PACS service port"
+    from_port   = var.pacs_service_port
+    to_port     = var.pacs_service_port
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Template service port"
+    from_port   = var.template_service_port
+    to_port     = var.template_service_port
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "AI service port"
+    from_port   = var.ai_service_port
+    to_port     = var.ai_service_port
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "RIS auxiliary services"
+    from_port   = 6000
+    to_port     = 6009
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "PACS / AI services"
+    from_port   = 9000
+    to_port     = 9005
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -71,11 +119,30 @@ module "app" {
   ssh_key_name       = var.ssh_key_name
   root_volume_size   = var.root_volume_size
 
-  app_directory      = var.app_directory
-  app_user           = var.app_user
-  node_major_version = var.node_major_version
-  pm2_version        = var.pm2_version
-  app_port           = var.app_port
+  app_directory         = var.app_directory
+  app_user              = var.app_user
+  node_major_version    = var.node_major_version
+  pm2_version           = var.pm2_version
+  app_port              = var.app_port
+  frontend_port         = var.frontend_port
+  pacs_service_port     = var.pacs_service_port
+  template_service_port = var.template_service_port
+  ai_service_port       = var.ai_service_port
+
+  db_host     = module.database.endpoint
+  db_port     = var.db_port
+  db_name     = var.db_name
+  db_username = var.db_username
+  db_password = var.db_password
+
+  repo_ris_backend           = var.repo_ris_backend
+  repo_ris_frontend          = var.repo_ris_frontend
+  repo_pacs_frontend         = var.repo_pacs_frontend
+  repo_ris_template          = var.repo_ris_template
+  repo_openai_image_analysis = var.repo_openai_image_analysis
+  repo_orthanc               = var.repo_orthanc
+  ris_jwt_secret             = var.ris_jwt_secret
+  openai_api_key             = var.openai_api_key
 
   tags = local.tags
 }

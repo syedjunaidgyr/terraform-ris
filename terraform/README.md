@@ -6,10 +6,9 @@ applications without Docker and manages the Node.js backend with `pm2`.
 ## What Gets Created
 
 - Dedicated VPC with public subnets, internet gateway, and routing
-- Security group allowing SSH, HTTP/HTTPS, and the configurable application port
+- Security group allowing SSH, HTTP/HTTPS, the configurable application port, and auxiliary service ranges
 - EC2 instance (Amazon Linux 2023) with SSM access
-- Instance bootstrap script that installs Node.js, Git, and `pm2`, then prepares
-  the application directory structure for later deployments
+- Instance bootstrap script that installs Node.js, Git, Python tooling, checks out all RIS repositories, generates env files, and launches them under `pm2`
 - Amazon RDS MySQL instance secured to accept traffic only from the application
   security group (private by default, optional Terraform-driven seeding)
 
@@ -41,9 +40,11 @@ Follow these steps once per environment (dev, staging, prod, etc.).
      - `aws_profile`: matches the configured CLI profile (or leave blank for default).
      - `ssh_key_name`: existing EC2 key pair in that region.
      - `allowed_ssh_cidrs`: lock down SSH access (e.g. office IP).
-     - `instance_type`, `app_port`, `node_major_version`, etc.
+     - `instance_type`, `app_port`, `frontend_port`, `pacs_service_port`, `template_service_port`, `ai_service_port`, `node_major_version`, etc.
+     - Repository URLs (`repo_*`) if you are using forks or private mirrors.
      - Database settings (`db_*` variables). Keep `db_password` out of source control:
        export it before running Terraform, e.g. `export TF_VAR_db_password='StrongPassword!'`.
+     - Secrets such as `ris_jwt_secret` and `openai_api_key` should be passed through environment variables or a secure tfvars file.
      - Set `db_seed_enabled = true` only if you want Terraform to run the SQL seed files automatically and your workstation has network access plus the `mysql` CLI.
      - Legacy single-file variable `db_seed_sql_file` is still accepted; when present it is merged into `db_seed_sql_files`.
 
@@ -191,4 +192,36 @@ apply the SQL manually from the EC2 host or another trusted environment.
 
 To use remote backend (e.g., S3 + DynamoDB) copy `backend.tf.example` and fill
 in bucket/table details before running `terraform init`.
+
+## Security Group Inbound Rules
+
+| Type        | Protocol | Port range  | Source                | Description            |
+|-------------|----------|-------------|-----------------------|------------------------|
+| SSH         | TCP      | `22`        | `allowed_ssh_cidrs`   | Administrative access  |
+| HTTP        | TCP      | `80`        | `0.0.0.0/0`           | Web traffic (optional) |
+| HTTPS       | TCP      | `443`       | `0.0.0.0/0`           | Secure web traffic     |
+| Custom TCP  | TCP      | `app_port`  | `0.0.0.0/0`           | Backend application    |
+| Custom TCP  | TCP      | `frontend_port` | `0.0.0.0/0`        | RIS frontend (Next.js) |
+| Custom TCP  | TCP      | `pacs_service_port` | `0.0.0.0/0`     | PACS services          |
+| Custom TCP  | TCP      | `template_service_port` | `0.0.0.0/0`  | RIS template backend   |
+| Custom TCP  | TCP      | `ai_service_port` | `0.0.0.0/0`      | AI image analysis API  |
+| Custom TCP  | TCP      | `6000-6009` | `0.0.0.0/0`           | RIS & related services |
+| Custom TCP  | TCP      | `9000-9005` | `0.0.0.0/0`           | PACS / AI services     |
+
+## EC2 Bootstrap Services
+
+User data on the application instance now performs the following on first boot:
+
+- Installs Node.js, PM2, Python 3, and supporting tooling.
+- Clones the RIS ecosystem repositories (backend, frontend, PACS frontend, template backend, OpenAI image analysis, Orthanc).
+- Generates environment files populated with the database endpoint, JWT secret, service ports, and (optionally) the OpenAI API key.
+- Installs dependencies and launches each service under PM2:
+  - `ris-backend` (port `app_port`)
+  - `ris-frontend` (port `frontend_port`, default 3002)
+  - `ris-template` (port `template_service_port`)
+  - `openai-image-analysis` Python service (port `ai_service_port`)
+  - `orthanc-parser` helper scripts
+- Persists the PM2 process list so services restart automatically on reboot.
+
+Update the new Terraform variables (repo URLs, service ports, secrets) in your `tfvars` file or via environment variables before running `terraform apply`.
 

@@ -60,14 +60,35 @@ data "aws_region" "current" {}
 
 locals {
   user_data = templatefile("${path.module}/user-data.sh.tpl", {
-    node_major_version = var.node_major_version
-    pm2_version        = var.pm2_version
-    app_user           = var.app_user
-    app_directory      = var.app_directory
-    project            = var.project
-    environment        = var.environment
-    app_port           = var.app_port
-    region             = data.aws_region.current.name
+    node_major_version         = var.node_major_version
+    pm2_version                = var.pm2_version
+    app_user                   = var.app_user
+    app_directory              = var.app_directory
+    project                    = var.project
+    environment                = var.environment
+    region                     = data.aws_region.current.name
+    app_port                   = var.app_port
+    frontend_port              = var.frontend_port
+    pacs_service_port          = var.pacs_service_port
+    template_service_port      = var.template_service_port
+    ai_service_port            = var.ai_service_port
+    repo_ris_backend           = var.repo_ris_backend
+    repo_ris_frontend          = var.repo_ris_frontend
+    repo_pacs_frontend         = var.repo_pacs_frontend
+    repo_ris_template          = var.repo_ris_template
+    repo_openai_image_analysis = var.repo_openai_image_analysis
+    repo_orthanc               = var.repo_orthanc
+    db_host                    = var.db_host
+    db_port                    = var.db_port
+    db_name                    = var.db_name
+    db_username                = var.db_username
+    db_password                = var.db_password
+    ris_jwt_secret             = var.ris_jwt_secret
+    openai_api_key             = var.openai_api_key
+    backend_base_url           = "http://localhost:${var.app_port}"
+    pacs_api_base_url          = "http://localhost:${var.pacs_service_port}"
+    ai_api_base_url            = "http://localhost:${var.ai_service_port}"
+    template_api_base_url      = "http://localhost:${var.template_service_port}"
   })
 }
 

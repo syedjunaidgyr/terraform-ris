@@ -56,3 +56,74 @@ variable "tags" {
   type = map(string)
 }
 
+variable "db_host" {
+  type = string
+}
+
+variable "db_port" {
+  type = number
+}
+
+variable "db_name" {
+  type = string
+}
+
+variable "db_username" {
+  type = string
+}
+
+variable "db_password" {
+  type      = string
+  sensitive = true
+}
+
+variable "frontend_port" {
+  type = number
+}
+
+variable "pacs_service_port" {
+  type = number
+}
+
+variable "template_service_port" {
+  type = number
+}
+
+variable "ai_service_port" {
+  type = number
+}
+
+variable "repo_ris_backend" {
+  type = string
+}
+
+variable "repo_ris_frontend" {
+  type = string
+}
+
+variable "repo_pacs_frontend" {
+  type = string
+}
+
+variable "repo_ris_template" {
+  type = string
+}
+
+variable "repo_openai_image_analysis" {
+  type = string
+}
+
+variable "repo_orthanc" {
+  type = string
+}
+
+variable "ris_jwt_secret" {
+  type = string
+}
+
+variable "openai_api_key" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+

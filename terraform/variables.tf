@@ -90,6 +90,80 @@ variable "app_directory" {
   default     = "/opt/ris/current"
 }
 
+variable "frontend_port" {
+  description = "Port the RIS frontend Next.js application should listen on."
+  type        = number
+  default     = 3002
+}
+
+variable "pacs_service_port" {
+  description = "Port reserved for PACS-related services exposed on the host."
+  type        = number
+  default     = 3001
+}
+
+variable "template_service_port" {
+  description = "Port used by the RIS template backend service."
+  type        = number
+  default     = 6011
+}
+
+variable "ai_service_port" {
+  description = "Port used by the AI image analysis service."
+  type        = number
+  default     = 8000
+}
+
+variable "repo_ris_backend" {
+  description = "Git repository URL for the RIS backend."
+  type        = string
+  default     = "https://github.com/zaenAbdulali/ris-backend.git"
+}
+
+variable "repo_ris_frontend" {
+  description = "Git repository URL for the RIS frontend."
+  type        = string
+  default     = "https://github.com/zaenAbdulali/ris-frontend.git"
+}
+
+variable "repo_pacs_frontend" {
+  description = "Git repository URL for the PACS frontend."
+  type        = string
+  default     = "https://github.com/shanmukhaPriyagyr/pacs_frontend.git"
+}
+
+variable "repo_ris_template" {
+  description = "Git repository URL for the RIS template backend."
+  type        = string
+  default     = "https://github.com/Niyam23/RIS-Backend-Template.git"
+}
+
+variable "repo_openai_image_analysis" {
+  description = "Git repository URL for the OpenAI image analysis service."
+  type        = string
+  default     = "https://github.com/zaenAbdulali/openai-image-analysis.git"
+}
+
+variable "repo_orthanc" {
+  description = "Git repository URL for Orthanc tooling."
+  type        = string
+  default     = "https://github.com/zaenAbdulali/orthanc.git"
+}
+
+variable "ris_jwt_secret" {
+  description = "JWT secret used by the RIS backend service."
+  type        = string
+  default     = "change-me"
+  sensitive   = true
+}
+
+variable "openai_api_key" {
+  description = "API key for the OpenAI image analysis service."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "extra_tags" {
   description = "Optional additional tags to merge onto every resource."
   type        = map(string)
