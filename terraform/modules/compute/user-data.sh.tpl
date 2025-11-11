@@ -189,6 +189,7 @@ pm2 start npm --name ris-backend -- start || true
 cd "$APP_ROOT/ris-frontend"
 load_env_if_exists ".env.local"
 retry 3 npm install
+NODE_ENV= npm install --save typescript @types/react @types/node
 npm run build
 (pm2 delete ris-frontend >/dev/null 2>&1 || true)
 PORT=${frontend_port} pm2 start npm --name ris-frontend -- start || true
@@ -232,6 +233,5 @@ rm -f "$APP_SETUP_SCRIPT"
 runuser -l "${app_user}" -c "pm2 startup systemd -u ${app_user} --hp /home/${app_user} >/dev/null 2>&1 || true"
 runuser -l "${app_user}" -c "pm2 save >/dev/null 2>&1 || true"
 runuser -l "${app_user}" -c "pm2 resurrect >/dev/null 2>&1 || true"
-runuser -l "${app_user}" -c "pm2 list || true"
 
 echo "===== RIS Bootstrap Complete Successfully ====="
