@@ -81,7 +81,7 @@ variable "pm2_version" {
 variable "app_user" {
   description = "Linux user that owns and runs the Node.js application."
   type        = string
-  default     = "ris"
+  default     = "ec2-user"
 }
 
 variable "app_directory" {
