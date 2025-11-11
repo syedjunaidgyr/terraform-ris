@@ -141,6 +141,8 @@ module "app" {
   repo_ris_template          = var.repo_ris_template
   repo_openai_image_analysis = var.repo_openai_image_analysis
   repo_orthanc               = var.repo_orthanc
+  github_username            = var.github_username
+  github_token               = var.github_token
   ris_jwt_secret             = var.ris_jwt_secret
   openai_api_key             = var.openai_api_key
 

@@ -150,6 +150,19 @@ variable "repo_orthanc" {
   default     = "https://github.com/zaenAbdulali/orthanc.git"
 }
 
+variable "github_username" {
+  description = "Username associated with the GitHub personal access token used for cloning private repositories."
+  type        = string
+  default     = ""
+}
+
+variable "github_token" {
+  description = "GitHub personal access token used for cloning private repositories."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "ris_jwt_secret" {
   description = "JWT secret used by the RIS backend service."
   type        = string

@@ -59,6 +59,8 @@ resource "aws_iam_instance_profile" "this" {
 data "aws_region" "current" {}
 
 locals {
+  # Render the user-data template.
+  # All keys here are available inside the template as ${key}
   user_data = templatefile("${path.module}/user-data.sh.tpl", {
     node_major_version         = var.node_major_version
     pm2_version                = var.pm2_version
@@ -78,6 +80,8 @@ locals {
     repo_ris_template          = var.repo_ris_template
     repo_openai_image_analysis = var.repo_openai_image_analysis
     repo_orthanc               = var.repo_orthanc
+    github_username            = var.github_username
+    github_token               = var.github_token
     db_host                    = var.db_host
     db_port                    = var.db_port
     db_name                    = var.db_name
@@ -85,10 +89,6 @@ locals {
     db_password                = var.db_password
     ris_jwt_secret             = var.ris_jwt_secret
     openai_api_key             = var.openai_api_key
-    backend_base_url           = "http://localhost:${var.app_port}"
-    pacs_api_base_url          = "http://localhost:${var.pacs_service_port}"
-    ai_api_base_url            = "http://localhost:${var.ai_service_port}"
-    template_api_base_url      = "http://localhost:${var.template_service_port}"
   })
 }
 
@@ -101,8 +101,7 @@ resource "aws_instance" "this" {
 
   iam_instance_profile = aws_iam_instance_profile.this.name
 
-  user_data                   = local.user_data
-  user_data_replace_on_change = true
+  user_data = local.user_data
 
   associate_public_ip_address = true
 
@@ -112,6 +111,17 @@ resource "aws_instance" "this" {
     encrypted   = true
   }
 
-  tags = merge(var.tags, { Name = "${local.name_prefix}-app" })
+  tags = merge(var.tags, {
+    Name        = "${local.name_prefix}-app"
+    Project     = var.project
+    Environment = var.environment
+  })
 }
 
+output "instance_public_ip" {
+  value = aws_instance.this.public_ip
+}
+
+output "instance_public_dns" {
+  value = aws_instance.this.public_dns
+}

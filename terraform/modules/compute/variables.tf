@@ -117,6 +117,17 @@ variable "repo_orthanc" {
   type = string
 }
 
+variable "github_username" {
+  type    = string
+  default = ""
+}
+
+variable "github_token" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+
 variable "ris_jwt_secret" {
   type = string
 }
